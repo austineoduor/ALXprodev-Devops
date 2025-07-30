@@ -41,7 +41,7 @@ pids=()
 names=()
 
 for name in "${POKEMON_LIST[@]}"; do
-  # enforce max parallel
+  # enforce max parallel kill
   while (( $(jobs -rp | wc -l) >= MAX_JOBS )); do
     sleep 0.5
   done
