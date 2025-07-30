@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+BASE_URL="https://pokeapi.co/api/v2/pokemon"
+ERROR_LOG="errors.txt"
+
+# Clear previous error log
+: > "$ERROR_LOG"
+
+for name in "${POKEMON_LIST[@]}"; do
+  filename="${name}.json"
+  url="${BASE_URL}/${name}"
+
+  echo "Fetching ${name} from ${url} …"
+
+  http_code=$(curl -s -w "%{http_code}" -o "$filename" "$url") || {
+    echo "curl failed for ${name}" >> "$ERROR_LOG"
+    continue
+  }
+
+  if [[ "$http_code" -ne 200 ]]; then
+    echo "HTTP ${http_code} error fetching ${name}" >> "$ERROR_LOG"
+    echo "Response saved in ${filename}" >> "$ERROR_LOG"
+    rm -f "$filename"
+  else
+    echo "Saved ${filename}"
+  fi
+
+  # Be nice: pause between requests
+  sleep 2
+done
+
+
+#!/usr/bin/env bash
+# set -euo pipefail
+
+# POKEMON_LIST=(bulbasaur ivysaur venusaur charmander charmeleon)
+# BASE_URL="https://pokeapi.co/api/v2/pokemon"
+# ERROR_LOG="errors.txt"
+# MAX_RETRIES=3
+# DELAY_BETWEEN=2
+
+# : > "$ERROR_LOG"
+
+# # Retry helper function with exponential backoff
+# retry_fetch() {
+#   local name=$1
+#   local output=$2
+#   local attempt=1
+#   local delay=1
+
+#   while (( attempt <= MAX_RETRIES )); do
+#     echo "Attempt $attempt fetching $name..."
+#     # curl: follow redirects, retry transient errors, retry refused, silent, write output
+#     if curl -s -L --retry 1 --retry-connrefused \
+#              --max-time 30 "$BASE_URL/$name" -o "$output"; then
+#       http_code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/$name") || http_code=0
+#       if [[ "$http_code" -eq 200 ]]; then
+#         return 0
+#       else
+#         echo "HTTP $http_code" >&2
+#       fi
+#     else
+#       echo "Curl failure" >&2
+#     fi
+
+#     if (( attempt < MAX_RETRIES )); then
+#       echo "Retrying in ${delay}s..." >&2
+#       sleep "$delay"
+#       delay=$(( delay * 2 ))
+#     fi
+
+#     ((attempt++))
+#   done
+
+#   return 1
+# }
+
+# for name in "${POKEMON_LIST[@]}"; do
+#   file="${name}.json"
+#   echo "=== Fetching ${name} ==="
+
+#   if retry_fetch "$name" "$file"; then
+#     echo "✅ Saved ${file}"
+#   else
+#     echo "❌ Failed to fetch ${name} after ${MAX_RETRIES} attempts" | tee -a "$ERROR_LOG"
+#     rm -f "$file"
+#   fi
+
+#   sleep "$DELAY_BETWEEN"
+# done
