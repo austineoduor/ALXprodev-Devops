@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+POKEMON_LIST=(bulbasaur ivysaur venusaur charmander charmeleon)
+BASE_URL="https://pokeapi.co/api/v2/pokemon"
+ERROR_LOG="errors.txt"
+MAX_JOBS=3   # max parallel downloads
+retry_limit=3
+
+: > "$ERROR_LOG"
+
+fetch_one() {
+  local name=$1
+  local output="$name.json"
+  local attempt=1
+
+  while (( attempt <= retry_limit )); do
+    echo "[$name] attempt $attempt..."
+    if curl -s -L -w "%{http_code}" "$BASE_URL/$name" -o "$output" >/tmp/httpcode; then
+      http_code=$(cat /tmp/httpcode)
+      if [[ "$http_code" -eq 200 ]]; then
+        echo "[$name] success"
+        return 0
+      else
+        echo "[$name] HTTP $http_code" >&2
+      fi
+    else
+      echo "[$name] curl error" >&2
+    fi
+    ((attempt++))
+    sleep $(( 2**(attempt-1) ))
+  done
+
+  echo "[$name] failed after $retry_limit attempts" >&2
+  echo "$name failed (HTTP code or curl)" >> "$ERROR_LOG"
+  rm -f "$output"
+  return 1
+}
+
+pids=()
+names=()
+
+for name in "${POKEMON_LIST[@]}"; do
+  # enforce max parallel
+  while (( $(jobs -rp | wc -l) >= MAX_JOBS )); do
+    sleep 0.5
+  done
+
+  fetch_one "$name" &
+  pids+=($!)
+  names+=("$name")
+done
+
+# Wait for all child processes and capture exit statuses
+for i in "${!pids[@]}"; do
+  pid=${pids[i]}
+  name=${names[i]}
+  if wait "$pid"; then
+    echo "[$name] completed OK"
+  else
+    echo "[$name] process failed" >&2
+  fi
+done
+
+echo "All fetches done."
