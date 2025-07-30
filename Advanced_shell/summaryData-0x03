@@ -15,7 +15,7 @@ done >> "$REPORT"
 
 echo "Generated raw CSV fields in $REPORT"
 
-# Now compute averages and output summary
+# Now sed compute averages and output summary
 awk -F, '
 BEGIN {
   OFMT="%.2f"
