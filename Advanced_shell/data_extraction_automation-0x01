@@ -41,4 +41,4 @@ else
   type=$(echo "$types_csv" | sed -E 's/\b(\w)/\u\1/g')
 fi
 
-echo "${name} is of type ${type}, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
