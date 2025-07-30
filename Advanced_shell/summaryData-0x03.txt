@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPORT="report.csv"
+# Remove old report if exists
+: > "$REPORT"
+
+# Print CSV header
+echo "name,height_dm,weight_hg" >> "$REPORT"
+
+for f in *.json; do
+  # Extract raw values using jq
+  jq -r '[.name, .height, .weight] | @csv' "$f"
+done >> "$REPORT"
+
+echo "Generated raw CSV fields in $REPORT"
+
+# Now compute averages and output summary
+awk -F, '
+BEGIN {
+  OFMT="%.2f"
+  print "name, height_m, weight_kg"
+}
+NR>1 {
+  name = $1
+  # Remove quotes if any
+  gsub(/"/, "", name)
+  height_m = $2/10
+  weight_kg = $3/10
+  printf "%s,%.1f,%.1f\n", name, height_m, weight_kg
+  sum_h += height_m
+  sum_w += weight_kg
+  count++
+}
+END {
+  if (count > 0) {
+    printf "\nAverage height: %.2f m\n", sum_h/count
+    printf "Average weight: %.2f kg\n", sum_w/count
+  }
+}
+' "$REPORT"

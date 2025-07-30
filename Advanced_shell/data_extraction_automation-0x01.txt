@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -e
+
+INPUT="data.json"
+
+# Verify file exists
+if [[ ! -f "$INPUT" ]]; then
+  echo "Error: $INPUT not found" >&2
+  exit 1
+fi
+
+# Use jq to extract raw values:
+# - name
+# - height
+# - weight
+# - types (array of type.name)
+raw=$(jq -r '
+  .name as $n |
+  .height as $h |
+  .weight as $w |
+  [.types[].type.name] | join(",") as $t |
+  "\($n)|\($h)|\($w)|\($t)"
+' "$INPUT")
+
+# Split by |
+name=$(echo "$raw" | awk -F'|' '{print $1}')
+height_dm=$(echo "$raw" | awk -F'|' '{print $2}')
+weight_hg=$(echo "$raw" | awk -F'|' '{print $3}')
+types_csv=$(echo "$raw"   | awk -F'|' '{print $4}')
+
+# Convert decimetres to metres, hectograms to kilograms
+height_m=$(echo "$height_dm" | awk '{printf "%.1f", ($1/10)}')
+weight_kg=$(echo "$weight_hg" | awk '{printf "%.0f", ($1/10)}')
+
+# Capitalize name and types
+name_cap=$(echo "$name" | sed 's/.*/\u&/')
+# For multiple types, join with " and " or comma
+if [[ "$types_csv" == *","* ]]; then
+  types_readable=$(echo "$types_csv" | sed -E 's/,/ and /g' | sed -E 's/\b(\w)/\u\1/g')
+else
+  types_readable=$(echo "$types_csv" | sed -E 's/\b(\w)/\u\1/g')
+fi
+
+echo "${name_cap} is of type ${types_readable}, weighs \
+${weight_kg} kg, and is ${height_m} m tall."
