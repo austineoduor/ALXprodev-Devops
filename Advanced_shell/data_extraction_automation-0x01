@@ -23,23 +23,23 @@ raw=$(jq -r '
 ' "$INPUT")
 
 # Split by |
-name=$(echo "$raw" | awk -F'|' '{print $1}')
+name_dh=$(echo "$raw" | awk -F'|' '{print $1}')
 height_dm=$(echo "$raw" | awk -F'|' '{print $2}')
 weight_hg=$(echo "$raw" | awk -F'|' '{print $3}')
 types_csv=$(echo "$raw"   | awk -F'|' '{print $4}')
 
 # Convert decimetres to metres, hectograms to kilograms
-height_m=$(echo "$height_dm" | awk '{printf "%.1f", ($1/10)}')
-weight_kg=$(echo "$weight_hg" | awk '{printf "%.0f", ($1/10)}')
+height=$(echo "$height_dm" | awk '{printf "%.1f", ($1/10)}')
+formatted_weight=$(echo "$weight_hg" | awk '{printf "%.0f", ($1/10)}')
 
 # Capitalize name and types
-name_cap=$(echo "$name" | sed 's/.*/\u&/')
+name=$(echo "$name_dh" | sed 's/.*/\u&/')
 # For multiple types, join with " and " or comma
 if [[ "$types_csv" == *","* ]]; then
-  types_readable=$(echo "$types_csv" | sed -E 's/,/ and /g' | sed -E 's/\b(\w)/\u\1/g')
+  type=$(echo "$types_csv" | sed -E 's/,/ and /g' | sed -E 's/\b(\w)/\u\1/g')
 else
-  types_readable=$(echo "$types_csv" | sed -E 's/\b(\w)/\u\1/g')
+  type=$(echo "$types_csv" | sed -E 's/\b(\w)/\u\1/g')
 fi
 
-echo "${name_cap} is of type ${types_readable}, weighs \
-${weight_kg} kg, and is ${height_m} m tall."
+echo "${name} is of type ${type}, weighs \
+${formatted_weight}kg, and is ${height}m tall."
